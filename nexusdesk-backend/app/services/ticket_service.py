@@ -6,6 +6,22 @@ from app.schemas.ticket import TicketCreate, TicketUpdate
 from datetime import datetime
 
 from app.models.customer import Customer
+from datetime import datetime
+
+def auto_assign_priority(issue_type: str, shipment_eta: str = None) -> str:
+    if issue_type in ["damage", "missing"]:
+        return "high"
+    if issue_type in ["wrong_item", "wrong_address"]:
+        return "medium"
+    if issue_type == "delay":
+        if shipment_eta:
+            try:
+                eta = datetime.strptime(shipment_eta, "%Y-%m-%d")
+                return "medium" if eta < datetime.now() else "low"
+            except:
+                return "medium"
+        return "medium"
+    return "low"
 
 def create_ticket(data, db, current_user):
     customer_id = data.customer_id
@@ -23,7 +39,7 @@ def create_ticket(data, db, current_user):
         subject=data.subject,
         description=data.description,
         status="open",
-        priority=data.priority,
+        priority=auto_assign_priority(data.issue_type, data.shipment_eta),
         channel=data.channel,
         issue_type=data.issue_type,
         order_id=data.order_id,
@@ -64,11 +80,15 @@ def get_ticket(ticket_id: int, db: Session) -> Ticket:
     return ticket
 
 
-def update_ticket(ticket_id: int, data: TicketUpdate, db: Session) -> Ticket:
-    ticket = get_ticket(ticket_id, db)
-    for field, val in data.model_dump(exclude_none=True).items():
-        setattr(ticket, field, val)
-    ticket.updated_at = datetime.utcnow()
+def update_ticket(ticket_id, data, db, current_user):
+    ticket = db.query(Ticket).filter(Ticket.id == ticket_id).first()
+    if data.priority and data.priority != ticket.priority:
+        if not data.priority_reason:
+            raise HTTPException(400, "A reason is required to change priority")
+    if data.priority:
+        ticket.priority = data.priority
+    if data.status:
+        ticket.status = data.status
     db.commit()
     db.refresh(ticket)
     return ticket

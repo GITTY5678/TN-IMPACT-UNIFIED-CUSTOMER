@@ -5,7 +5,6 @@ from typing import Optional
 class TicketCreate(BaseModel):
     subject:          str
     description:      Optional[str] = None
-    priority:         str = "medium"
     channel:          str = "web"
     issue_type:       Optional[str] = None
     order_id:         Optional[str] = None
@@ -20,6 +19,7 @@ class TicketCreate(BaseModel):
 class TicketUpdate(BaseModel):
     status:           Optional[str] = None
     priority:         Optional[str] = None
+    priority_reason:  Optional[str] = None
     agent_id:         Optional[int] = None
     shipment_status:  Optional[str] = None
     shipment_eta:     Optional[str] = None
@@ -52,6 +52,7 @@ class TicketOut(BaseModel):
     shipment_status:  Optional[str]
     shipment_eta:     Optional[str]
     incident_date:    Optional[str]
+    priority_reason:  Optional[str] = None
     customer_id:      Optional[int]
     agent_id:         Optional[int]
     customer:         Optional[CustomerOut]
